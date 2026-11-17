@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>인덕 & 본사 공식 캠퍼스 포털 & 스토어</title>
+  <!-- Pretendard Web Font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Main Header -->
+    <header class="header">
+      <div class="header-container">
+        <div class="logo-area" onclick="app.resetView()">
+          <div class="logo-icon">🏛️</div>
+          <div>
+            <div class="logo-title">
+              인덕 & 본사 캠퍼스 포털
+              <span class="badge-official">공식 운영</span>
+            </div>
+            <div class="logo-subtitle">스마트 다중 공간 게시판 & 공식 캠퍼스 스토어</div>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <!-- 테마 토글 버튼 -->
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="화이트/다크 테마 전환">
+            <span id="themeIcon">🌙</span>
+            <span id="themeText">다크모드</span>
+          </button>
+
+          <!-- 사용자 권한 배지 (클릭 시 사용자/관리자 전환 모달) -->
+          <div class="user-badge" id="userBadgeBtn" title="클릭하여 권한/계정 변경">
+            <span id="userRoleIcon">👤</span>
+            <span id="userNameRole">김인덕 (학생/멤버)</span>
+          </div>
+
+          <!-- 관리자 모드 펄스 인디케이터 -->
+          <div class="admin-badge hidden" id="adminIndicator">
+            <div class="pulse-dot"></div>
+            <span>관리자 모드</span>
+          </div>
+
+          <!-- 장바구니 버튼 -->
+          <button class="btn btn-outline" id="headerCartBtn">
+            🛒 장바구니
+            <span class="cart-badge" id="cartBadgeCount">0</span>
+          </button>
+
+          <!-- 공간/권한 관리 버튼 (관리자 전용) -->
+          <button class="btn btn-secondary btn-sm" id="openMgmtBtn">
+            ⚙️ 공간 관리
+          </button>
+
+          <!-- 새 글 작성 버튼 -->
+          <button class="btn btn-primary" id="openWriteBtn">
+            ✏️ 새 글 / 민원 작성
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+      <!-- ==============================================
+           공간 네비게이션 & 스위처 섹션
+           (현재 공간에서 쇼핑몰로 즉시 전환 가능!)
+           ============================================== -->
+      <section class="space-nav-section">
+        <div class="space-header-row">
+          <div class="space-select-wrap">
+            <span class="space-label-badge">현재 공간</span>
+            <select class="space-dropdown" id="spaceSelect">
+              <option value="induk_campus">🎓 인덕 캠퍼스 (학생·교직원 소통공간)</option>
+              <option value="campus_shop">🛒 인덕 공식 캠퍼스 스토어 (쇼핑몰)</option>
+              <option value="hq_admin">🏢 본사 행정·지원동 (매니저 전용)</option>
+              <option value="rnd_center">🔬 R&D 미래연구센터 (최고관리자 전용)</option>
+            </select>
+            <div class="space-role-badge member" id="spaceRoleDisplay">
+              <span>접근 가능</span>
+            </div>
+          </div>
+
+          <!-- 현재 공간 뷰 모드 직접 전환 스위처 (게시판 ↔ 쇼핑몰) -->
+          <div class="mode-toggle-group">
+            <button class="mode-toggle-btn active" id="btnModeBoard" onclick="app.switchViewMode('board')">
+              📋 게시판 / 민원함
+            </button>
+            <button class="mode-toggle-btn" id="btnModeShop" onclick="app.switchViewMode('shop')">
+              🛒 캠퍼스 스토어
+            </button>
+          </div>
+        </div>
+
+        <div id="spaceExtraNotice" class="space-desc-text">
+          📌 인덕 캠퍼스 구성원 누구나 자유롭게 소통하고 건의할 수 있는 열린 공간입니다.
+        </div>
+
+        <!-- 공간별 게시판 탭 바 (게시판 모드일 때 활성화) -->
+        <div class="boards-bar-wrapper" id="boardsBarWrapper">
+          <div class="boards-bar-title">
+            <span>공간 내 세부 게시판 및 서비스</span>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">클릭하여 즉시 이동</span>
+          </div>
+          <div class="boards-tabs-list" id="boardTabsList">
+            <!-- JS에서 동적 렌더링 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==============================================
+           접근 차단 경고 컨테이너 (비인가 구역 진입 시)
+           ============================================== -->
+      <div class="access-blocked-container hidden" id="accessBlockedBox">
+        <div class="access-blocked-icon">🔒</div>
+        <h3 class="access-blocked-title">해당 공간에 대한 접근 권한이 제한되었습니다</h3>
+        <p class="access-blocked-desc" id="accessBlockedMsg">
+          선택하신 공간은 본사 매니저 또는 최고관리자 인가가 필요한 비공개 구역입니다.<br>
+          계정의 권한을 승격하거나 공개된 인덕 캠퍼스 또는 캠퍼스 스토어로 전환해 주시기 바랍니다.
+        </p>
+        <div class="access-blocked-actions">
+          <button class="btn btn-primary" onclick="app.switchSpace('induk_campus')">
+            🎓 인덕 캠퍼스로 복귀
+          </button>
+          <button class="btn btn-outline-primary" onclick="app.switchSpace('campus_shop')">
+            🛒 캠퍼스 스토어로 이동
+          </button>
+          <button class="btn btn-outline" onclick="app.openAuthModal()">
+            🔑 권한 변경 / 관리자 로그인
+          </button>
+        </div>
+      </div>
+
+      <!-- ==============================================
+           [뷰 1] 다중 게시판 & 민원 소통 모드
+           ============================================== -->
+      <div id="boardMainView">
+        <!-- 통계 현황 그리드 -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon-wrapper blue">📋</div>
+            <div>
+              <div class="stat-label">전체 접수 글</div>
+              <div class="stat-value" id="statTotalPosts">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper yellow">⏳</div>
+            <div>
+              <div class="stat-label">검토·처리 중</div>
+              <div class="stat-value" id="statPendingPosts">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper green">✅</div>
+            <div>
+              <div class="stat-label">공식 답변 완료</div>
+              <div class="stat-value" id="statAnsweredPosts">0</div>
+              <div class="stat-sub" id="statAnswerRate">답변율 100%</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrapper purple">⭐</div>
+            <div>
+              <div class="stat-label">소통 신뢰도</div>
+              <div class="stat-value">98.4%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 안심 소통 안내 배너 -->
+        <div class="info-alert">
+          <div class="info-icon">💡</div>
+          <div>
+            <strong>안심 비공개 민원 & 실시간 소통 정책:</strong> 비밀글 작성 시 본인 및 담당 관리자만 열람할 수 있으며, 접수된 모든 건의·민원은 48시간 이내 검토 후 부서 공식 답변이 등록됩니다.
+          </div>
+        </div>
+
+        <!-- 상태 필터 및 검색 바 -->
+        <div class="filter-section">
+          <div class="status-tabs" id="statusFilterTabs">
+            <button class="tab active" data-status="all">전체보기</button>
+            <button class="tab" data-status="대기중">대기중</button>
+            <button class="tab" data-status="검토중">검토중</button>
+            <button class="tab" data-status="답변완료">답변완료</button>
+            <button class="tab" data-status="보류">보류</button>
+          </div>
+
+          <div class="search-filter-controls">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" class="form-input search-input" id="boardSearchInput" placeholder="제목, 내용 또는 작성자 검색...">
+            </div>
+          </div>
+        </div>
+
+        <!-- 게시판 목록 헤더 -->
+        <div class="board-header">
+          <div class="board-count-text">
+            선택된 게시판: <strong id="currentBoardTitleDisplay">건의 & 민원 소통함</strong> (총 <span id="filteredPostCount">0</span>건)
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="app.refreshBoard()">
+            🔄 새로고침
+          </button>
+        </div>
+
+        <!-- 게시글 / 민원 카드 리스트 -->
+        <div class="complaints-list" id="complaintsList">
+          <!-- JS에서 동적 렌더링 -->
+        </div>
+      </div>
+
+      <!-- ==============================================
+           [뷰 2] 와이드 캠퍼스 스토어 (쇼핑몰 모드 & 개인 판매 기능)
+           ============================================== -->
+      <div id="shopMainView" class="shop-view-container hidden">
+        <!-- 쇼핑 프로모션 대형 배너 -->
+        <div class="shop-hero-banner">
+          <div class="shop-hero-tag">Campus Welfare & Open Market</div>
+          <div class="shop-hero-title">인덕 & 본사 캠퍼스 스토어 & 오픈마켓</div>
+          <div class="shop-hero-desc">공식 캠퍼스 굿즈는 물론, 학생들이 직접 실물 사진을 올려 물품을 판매하고 누구나 바로 구매할 수 있는 열린 캠퍼스 마켓플레이스입니다.</div>
+          <div class="shop-hero-actions">
+            <button class="btn btn-primary" onclick="app.openProductRegisterModal()">
+              📷 내 상품 사진 & 판매 등록하기
+            </button>
+            <button class="btn btn-outline" style="background:rgba(255,255,255,0.2); color:#fff; border-color:rgba(255,255,255,0.5);" onclick="app.openCartModal()">
+              🛒 장바구니 및 구매하기
+            </button>
+          </div>
+        </div>
+
+        <!-- 쇼핑 카테고리 필터 + 상품 검색 -->
+        <div class="shop-filter-section">
+          <div class="shop-category-tabs" id="shopCategoryTabs">
+            <button class="shop-cat-btn active" data-cat="all">전체 상품</button>
+            <button class="shop-cat-btn" data-cat="user">👤 학생/개인 판매</button>
+            <button class="shop-cat-btn" data-cat="goods">캠퍼스 굿즈/의류</button>
+            <button class="shop-cat-btn" data-cat="digital">디지털/IT 장비</button>
+            <button class="shop-cat-btn" data-cat="stationery">전공도서/문구</button>
+            <button class="shop-cat-btn" data-cat="life">생활/복지식권</button>
+          </div>
+          <div class="shop-search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-input" id="shopSearchInput" placeholder="상품명, 판매자 또는 키워드 검색..." />
+          </div>
+        </div>
+
+        <!-- 상품 목록 섹션 -->
+        <section class="shop-products-section">
+          <div class="shop-products-header">
+            <div>
+              등록된 상품: <strong style="color:var(--primary);" id="shopProductCountDisplay">0</strong>개
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <button class="btn btn-success btn-sm" onclick="app.openProductRegisterModal()">
+                📷 판매할 물품 올리기
+              </button>
+              <button class="btn btn-outline-primary btn-sm" onclick="app.openCartModal()">
+                🛒 장바구니 (<span id="shopProductCartCount">0</span>)
+              </button>
+            </div>
+          </div>
+
+          <!-- 상품 카드 그리드 -->
+          <div class="shop-products-grid" id="shopProductsGrid">
+            <!-- JS 동적 렌더링 -->
+          </div>
+        </section>
+
+        <!-- 스토어 전용 Q&A 및 구매후기 소통 게시판 -->
+        <section class="shop-board-section">
+          <div class="shop-board-title">
+            <span>💬 캠퍼스 스토어 Q&A 및 직거래/수령 안내</span>
+            <button class="btn btn-outline btn-sm" onclick="app.openWriteModalForShop()">스토어 문의 작성</button>
+          </div>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1rem;">
+            스토어 상품 주문, 개인 간 거래 직거래 장소(학생회관, 도서관 등) 조율 및 상품 후기를 남기실 수 있습니다.
+          </p>
+          <div class="complaints-list" id="shopQuestionsList">
+            <!-- JS 동적 렌더링 -->
+          </div>
+        </section>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer style="background:var(--bg-card); border-top:1px solid var(--border-color); padding:1.5rem; text-align:center; font-size:0.82rem; color:var(--text-muted); margin-top:2.5rem;">
+      <div style="max-width:1240px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <strong>인덕대학교 & 본사 스마트 캠퍼스 행정 통합 포털</strong> | 교내 복지몰 고객센터: support@induk-campus.ac.kr
+        </div>
+        <div>
+          <span>개인정보처리방침</span> &bull; <span>이용약관</span> &bull; <span>스토어 교환/환불규정</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ==============================================
+       모달 컴포넌트들
+       ============================================== -->
+
+  <!-- 1. [사진 첨부 지원] 내 상품 판매 등록 모달 -->
+  <div class="modal-backdrop hidden" id="productRegisterModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">📦 판매할 상품 등록하기</h3>
+        <button class="modal-close" onclick="app.closeModal('productRegisterModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+          직접 찍은 실물 사진이나 이미지를 첨부하면 구매자들의 신뢰도가 높아집니다.
+        </p>
+
+        <!-- [신규] 실물 사진 첨부 업로드 영역 -->
+        <div class="form-group">
+          <label class="form-label">상품 실물 사진 첨부 (선택)</label>
+          <div class="image-upload-area" id="prodImageUploadArea" onclick="document.getElementById('regProdImageFile').click()">
+            <input type="file" id="regProdImageFile" accept="image/*" style="display:none;" onchange="app.handleProductImageSelect(event)">
+            <div id="prodImagePlaceholder" class="upload-placeholder">
+              <span style="font-size:2rem;">📷</span>
+              <span style="font-size:0.88rem; font-weight:700;">클릭하여 상품 실물 사진 등록 (JPG, PNG)</span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">미등록 시 아래의 대표 아이콘 이모지가 적용됩니다.</span>
+            </div>
+            <div id="prodImagePreviewWrap" class="upload-preview-wrap hidden">
+              <img id="prodImagePreview" src="" alt="상품 미리보기" class="upload-preview-img" />
+              <button type="button" class="btn btn-danger btn-xs btn-remove-img" onclick="event.stopPropagation(); app.removeProductImage()">사진 삭제 ❌</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">상품 분류 <span class="required">*</span></label>
+            <select class="form-select" id="regProdCategory">
+              <option value="goods">캠퍼스 굿즈/의류</option>
+              <option value="digital">디지털/IT 장비</option>
+              <option value="stationery">전공도서/문구</option>
+              <option value="life">생활/복지/식권</option>
+              <option value="user">기타/개인 중고 물품</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">판매자 명의</label>
+            <input type="text" class="form-input" id="regProdSeller" placeholder="판매자 이름" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">상품명 <span class="required">*</span></label>
+          <input type="text" class="form-input" id="regProdName" placeholder="예: [미개봉] 아이패드 마그네틱 케이스 + 애플펜슬 팁" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">판매 가격 (원) <span class="required">*</span></label>
+            <input type="number" class="form-input" id="regProdPrice" placeholder="예: 25000" min="0" step="500" />
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">판매 수량 (개) <span class="required">*</span></label>
+            <input type="number" class="form-input" id="regProdStock" value="1" min="1" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">보조 대표 아이콘 (사진 미등록 시 사용)</label>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input type="text" class="form-input" id="regProdIcon" value="🎁" style="width:70px; text-align:center; font-size:1.4rem;" />
+            <div class="emoji-picker-row" id="emojiPickerRow">
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('💻')">💻</button>
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('📱')">📱</button>
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('🎧')">🎧</button>
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('🧥')">🧥</button>
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('👟')">👟</button>
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('🎒')">🎒</button>
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('📚')">📚</button>
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('☕')">☕</button>
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('🥪')">🥪</button>
+              <button type="button" class="emoji-choice-btn" onclick="app.selectProductEmoji('🎁')">🎁</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">상품 설명 및 거래 방법 <span class="required">*</span></label>
+          <textarea class="form-textarea" id="regProdDesc" rows="4" placeholder="물품 상태, 사용 기간, 직거래 희망 장소(도서관 1층, 학생회관 등)나 택배 거래 여부를 상세히 적어주세요."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('productRegisterModal')">취소</button>
+        <button class="btn btn-primary" onclick="app.submitNewProduct()">판매 등록 완료</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. [사진 첨부 지원] 새 글 / 민원 작성 모달 -->
+  <div class="modal-backdrop hidden" id="writeModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="writeModalTitle">새 글 / 민원 접수</h3>
+        <button class="modal-close" onclick="app.closeModal('writeModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">등록 공간 <span class="required">*</span></label>
+            <select class="form-select" id="writeSpaceSelect">
+              <option value="induk_campus">인덕 캠퍼스</option>
+              <option value="campus_shop">캠퍼스 스토어 (쇼핑몰)</option>
+              <option value="hq_admin">본사 행정·지원동</option>
+              <option value="rnd_center">R&D 미래연구센터</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">게시판 선택 <span class="required">*</span></label>
+            <select class="form-select" id="writeBoardSelect">
+              <!-- 동적 채움 -->
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">분류 카테고리 <span class="required">*</span></label>
+            <select class="form-select" id="writeCategorySelect">
+              <option value="시설/환경">시설/환경</option>
+              <option value="학사/행정">학사/행정</option>
+              <option value="IT/시스템">IT/시스템</option>
+              <option value="복지/편의">복지/편의</option>
+              <option value="스토어문의">스토어문의/후기</option>
+              <option value="일반문의">일반문의</option>
+              <option value="나눔/거래">나눔/거래</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">작성자 명의</label>
+            <input type="text" class="form-input" id="writeAuthorInput" placeholder="익명 또는 이름 입력" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">제목 <span class="required">*</span></label>
+          <input type="text" class="form-input" id="writeTitleInput" placeholder="핵심 내용을 요약하여 작성해 주세요." />
+        </div>
+
+        <!-- 사진 첨부 (시설 파손, 거래 증빙 등) -->
+        <div class="form-group">
+          <label class="form-label">현장 사진 / 증빙 사진 첨부 (선택)</label>
+          <div class="image-upload-area" id="postImageUploadArea" onclick="document.getElementById('writePostImageFile').click()">
+            <input type="file" id="writePostImageFile" accept="image/*" style="display:none;" onchange="app.handlePostImageSelect(event)">
+            <div id="postImagePlaceholder" class="upload-placeholder">
+              <span style="font-size:1.6rem;">🖼️</span>
+              <span style="font-size:0.85rem; font-weight:700;">시설 파손 부위, 물품 실물 등 현장 사진 첨부</span>
+            </div>
+            <div id="postImagePreviewWrap" class="upload-preview-wrap hidden">
+              <img id="postImagePreview" src="" alt="게시글 사진 미리보기" class="upload-preview-img" />
+              <button type="button" class="btn btn-danger btn-xs btn-remove-img" onclick="event.stopPropagation(); app.removePostImage()">사진 삭제 ❌</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">내용 <span class="required">*</span></label>
+          <textarea class="form-textarea" id="writeContentInput" rows="5" placeholder="자세한 건의, 문의 또는 스토어 리뷰 내용을 입력하세요. 상호 존중을 부탁드립니다."></textarea>
+        </div>
+
+        <div class="form-group-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" id="writeIsSecret" onchange="app.toggleSecretPwdField()">
+            <span>🔒 비밀글(비공개 민원)로 등록</span>
+          </label>
+          <span class="input-hint">비밀글 설정 시 작성자와 관리자만 내용을 확인할 수 있습니다.</span>
+        </div>
+
+        <div class="form-group hidden" id="writeSecretPwdGroup">
+          <label class="form-label">비밀글 비밀번호 (4자리 이상)</label>
+          <input type="password" class="form-input" id="writeSecretPwd" placeholder="열람 시 사용할 비밀번호 입력" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('writeModal')">취소</button>
+        <button class="btn btn-primary" onclick="app.submitNewPost()">등록하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 게시글 상세 및 공식 답변 / 첨부 사진 / 계층형 댓글 모달 -->
+  <div class="modal-backdrop hidden" id="postDetailModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+          <span class="badge badge-category" id="detailCategoryBadge">카테고리</span>
+          <span class="badge badge-status" id="detailStatusBadge">대기중</span>
+          <span class="badge badge-secret hidden" id="detailSecretBadge">🔒 비밀글</span>
+        </div>
+        <button class="modal-close" onclick="app.closeModal('postDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body detail-modal-body">
+        <div>
+          <h2 class="modal-title" style="font-size:1.35rem; margin-bottom:0.4rem;" id="detailTitle">게시글 제목</h2>
+          <div style="font-size:0.82rem; color:var(--text-muted); display:flex; gap:0.75rem;">
+            <span>작성자: <b id="detailAuthor" style="color:var(--text-main);">홍길동</b></span>
+            <span>&bull;</span>
+            <span id="detailCreatedAt">2026-11-17 14:00</span>
+            <span>&bull;</span>
+            <span>조회수: <b id="detailViews">12</b></span>
+          </div>
+        </div>
+
+        <div class="detail-content-box" id="detailContent">
+          본문 내용이 표시됩니다.
+        </div>
+
+        <!-- 첨부 사진 표시 영역 -->
+        <div id="detailPhotoContainer" class="hidden">
+          <img id="detailAttachedImg" src="" alt="첨부 사진" class="post-detail-photo" />
+        </div>
+
+        <!-- 공식 관리자 답변 박스 영역 -->
+        <div class="answer-section" id="detailAnswerSection">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h4 style="font-size:1rem; font-weight:700; color:var(--text-main);">🏛️ 공식 행정 처리 답변</h4>
+            <div id="adminAnswerControls" class="hidden">
+              <button class="btn btn-outline btn-xs" onclick="app.toggleAdminAnswerForm()">답변 작성/수정</button>
+            </div>
+          </div>
+
+          <!-- 답변 내용 노출 영역 -->
+          <div class="answer-box hidden" id="detailAnswerBox">
+            <div class="answer-meta">
+              <span class="answer-officer" id="detailAnswerOfficer">담당 부서: 캠퍼스 행정지원처</span>
+              <span class="answer-date" id="detailAnswerDate">2026-11-17</span>
+            </div>
+            <div class="answer-content-text" id="detailAnswerContent">
+              공식 답변이 이곳에 노출됩니다.
+            </div>
+          </div>
+
+          <!-- 관리자 답변 작성/수정 폼 -->
+          <div class="admin-answer-form-container hidden" id="adminAnswerForm">
+            <h5>공식 답변 작성 및 상태 갱신</h5>
+            <div class="form-group">
+              <label class="form-label">처리 상태 변경</label>
+              <select class="form-select" id="adminStatusSelect">
+                <option value="대기중">대기중</option>
+                <option value="검토중">검토중</option>
+                <option value="답변완료">답변완료 (해결)</option>
+                <option value="보류">보류 (추후 재논의)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">공식 답변 본문</label>
+              <textarea class="form-textarea" id="adminAnswerText" rows="4" placeholder="민원인에게 전달할 공식 처리 결과 또는 진행 상황을 입력하세요."></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+              <button class="btn btn-secondary btn-sm" onclick="app.toggleAdminAnswerForm()">취소</button>
+              <button class="btn btn-success btn-sm" onclick="app.saveAdminAnswer()">답변 등록 및 저장</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 계층형 댓글 및 대댓글 영역 -->
+        <div style="margin-top:1.5rem; border-top:1px solid var(--border-color); padding-top:1rem;">
+          <div style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-main);">
+            💬 소통 댓글 및 질의 (<span id="detailCommentCount">0</span>)
+          </div>
+
+          <!-- 댓글 목록 -->
+          <div id="detailCommentsContainer">
+            <!-- 동적 렌더링 -->
+          </div>
+
+          <!-- 새 댓글 작성 폼 -->
+          <div style="margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem;">
+            <div style="display:flex; gap:0.5rem;">
+              <input type="text" class="form-input" id="commentAuthorInput" placeholder="작성자(선택)" style="width:140px;" />
+              <input type="text" class="form-input flex-1" id="commentTextInput" placeholder="의견 또는 추가 문의 내용을 작성하세요..." />
+              <button class="btn btn-primary" onclick="app.submitComment()">등록</button>
+            </div>
+            <div id="replyingNotice" class="hidden" style="font-size:0.78rem; color:var(--primary); display:flex; justify-content:space-between; align-items:center;">
+              <span>↳ <strong id="replyingTargetName"></strong> 님에게 답글 작성 중</span>
+              <button class="btn-text-link" onclick="app.cancelReplyMode()">답글 취소</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('postDetailModal')">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 장바구니 모달 -->
+  <div class="modal-backdrop hidden" id="cartModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">🛒 캠퍼스 스토어 장바구니</h3>
+        <button class="modal-close" onclick="app.closeModal('cartModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="shop-cart-list" id="cartModalList">
+          <!-- 동적 렌더링 -->
+        </div>
+        <div class="shop-cart-summary">
+          <div class="shop-cart-total-row">
+            <span>총 결제 예정 금액:</span>
+            <span class="shop-cart-total-price" id="cartModalTotal">₩0</span>
+          </div>
+          <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.35rem;">
+            * 공식 상품 및 학생 개인 등록 물품 모두 안전 결제 및 직수령 지원
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('cartModal')">계속 둘러보기</button>
+        <button class="btn btn-primary" onclick="app.checkoutCart()">주문 및 결제 진행</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 상품 상세 정보 모달 (실물 사진 뷰 및 바로구매) -->
+  <div class="modal-backdrop hidden" id="productDetailModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">상품 상세 정보</h3>
+        <button class="modal-close" onclick="app.closeModal('productDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; gap:1.25rem; flex-wrap:wrap;">
+          <div style="font-size:4.5rem; background:var(--bg-subtle); width:150px; height:150px; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border-color);" id="prodDetailImg">
+            🎁
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:0.4rem;">
+            <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
+              <span class="badge badge-category" id="prodDetailCat">카테고리</span>
+              <span class="badge" style="background:#ede9fe; color:#6d28d9;" id="prodDetailSeller">판매자: 인덕 공식</span>
+              <span class="badge" style="background:#ecfdf5; color:#047857;" id="prodDetailStock">재고: 10개</span>
+            </div>
+            <h3 style="font-size:1.2rem; font-weight:800; color:var(--text-main);" id="prodDetailTitle">상품명</h3>
+            <div style="font-size:1.35rem; font-weight:800; color:var(--shop-primary);" id="prodDetailPrice">₩0</div>
+            <div style="font-size:0.85rem; color:#d97706; font-weight:700;" id="prodDetailRating">⭐ 4.9 (후기 45건)</div>
+          </div>
+        </div>
+        <div style="margin-top:1rem; padding:0.85rem; background:var(--bg-subtle); border-radius:var(--radius-sm); font-size:0.9rem; color:var(--text-secondary); line-height:1.6;" id="prodDetailDesc">
+          상품 상세 설명이 들어갑니다.
+        </div>
+        <div style="margin-top:1.25rem; display:flex; align-items:center; justify-content:space-between;" id="prodQtyRow">
+          <span style="font-size:0.9rem; font-weight:700;">구매 수량:</span>
+          <div class="shop-qty-row">
+            <button class="shop-qty-btn" onclick="app.adjustDetailQty(-1)">-</button>
+            <span class="shop-qty-display" id="prodDetailQty">1</span>
+            <button class="shop-qty-btn" onclick="app.adjustDetailQty(1)">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" id="prodModalFooter">
+        <button class="btn btn-secondary" onclick="app.closeModal('productDetailModal')">닫기</button>
+        <button class="btn btn-outline-primary" onclick="app.addCurrentProductToCart()">🛒 장바구니 담기</button>
+        <button class="btn btn-primary" onclick="app.buyCurrentProductNow()">⚡ 바로 구매하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 권한/사용자 전환 모달 -->
+  <div class="modal-backdrop hidden" id="authModal">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">사용자 및 권한 전환</h3>
+        <button class="modal-close" onclick="app.closeModal('authModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="auth-desc" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+          원하는 사용자 역할을 선택하여 각 공간의 접근 인가 수준을 테스트해 보세요.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:0.65rem;">
+          <button class="btn btn-outline btn-block" style="justify-content:flex-start; text-align:left;" onclick="app.switchUser('member')">
+            <div>
+              <div style="font-weight:700;">🎓 일반 학생 / 멤버 (김인덕)</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">인덕 캠퍼스 열람 및 글 작성, 사진 첨부 판매 및 쇼핑 가능</div>
+            </div>
+          </button>
+          <button class="btn btn-outline btn-block" style="justify-content:flex-start; text-align:left;" onclick="app.switchUser('manager')">
+            <div>
+              <div style="font-weight:700; color:#6d28d9;">🏢 행정 매니저 (이행정)</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">본사 행정동 접근 및 공식 답변 등록 가능</div>
+            </div>
+          </button>
+          <button class="btn btn-outline btn-block" style="justify-content:flex-start; text-align:left;" onclick="app.switchUser('superadmin')">
+            <div>
+              <div style="font-weight:700; color:#b45309;">👑 최고 관리자 (박본사)</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">R&D 미래연구센터 포함 전 구역 통제 및 권한 관리</div>
+            </div>
+          </button>
+        </div>
+
+        <div style="margin-top:1.25rem; border-top:1px dashed var(--border-color); padding-top:1rem;">
+          <span class="secondary-badge">보안 비상 Fallback 인증</span>
+          <div class="security-question-box">
+            보안 질문: 인덕 캠퍼스의 창립 정신은?
+          </div>
+          <input type="text" class="form-input" id="fallbackAnswerInput" placeholder="답변 입력 (힌트: 진리, 창조, 봉사)" />
+          <button class="btn btn-secondary btn-sm btn-block" style="margin-top:0.5rem;" onclick="app.verifyFallbackAuth()">
+            2차 인증으로 최고관리자 즉시 승격
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. 공간 및 사용자 권한 관리 모달 -->
+  <div class="modal-backdrop hidden" id="mgmtModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ 공간 및 사용자 권한 거버넌스 관리</h3>
+        <button class="modal-close" onclick="app.closeModal('mgmtModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="mgmt-tabs">
+          <button class="mgmt-tab-btn active">사용자별 공간 권한 목록</button>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          각 공간(인덕 캠퍼스, 캠퍼스 스토어, 본사 행정동, R&D 센터)에 대한 접근 인가 수준을 제어할 수 있습니다.
+        </p>
+        <div class="mgmt-table-wrap">
+          <table class="mgmt-table">
+            <thead>
+              <tr>
+                <th>사용자 명</th>
+                <th>소속 및 직책</th>
+                <th>인덕 캠퍼스</th>
+                <th>캠퍼스 스토어</th>
+                <th>본사 행정동</th>
+                <th>R&D 센터</th>
+                <th>권한 상태</th>
+              </tr>
+            </thead>
+            <tbody id="mgmtTableBody">
+              <!-- 동적 렌더링 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('mgmtModal')">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. 비밀글 열람 비밀번호 확인 모달 -->
+  <div class="modal-backdrop hidden" id="secretPwdModal">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">🔒 비밀글 열람</h3>
+        <button class="modal-close" onclick="app.closeModal('secretPwdModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1rem;">
+          이 글은 비공개로 등록된 민원입니다. 열람하려면 등록 시 설정한 비밀번호를 입력해 주세요.
+        </p>
+        <div class="form-group">
+          <label class="form-label">비밀번호 입력</label>
+          <input type="password" class="form-input" id="checkSecretPwdInput" placeholder="비밀번호" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('secretPwdModal')">취소</button>
+        <button class="btn btn-primary" onclick="app.confirmSecretAccess()">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 컨테이너 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JavaScript 애플리케이션 로직 -->
+  <script src="app.js"></script>
+</body>
+</html>
